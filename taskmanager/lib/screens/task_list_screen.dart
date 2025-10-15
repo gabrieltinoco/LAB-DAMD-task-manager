@@ -21,8 +21,22 @@ class _TaskListScreenState extends State<TaskListScreen> {
     _loadTasks();
   }
 
+  String _getAppBarTitle() {
+    final count = _tasks.length;
+    switch (_currentFilter) {
+      case 'pending':
+        return '$count Tarefa(s) Pendente(s)';
+      case 'completed':
+        return '$count Tarefa(s) Completa(s)';
+      default:
+        return '$count Tarefa(s) no Total';
+    }
+  }
+
   Future<void> _loadTasks() async {
-    final tasks = await DatabaseService.instance.readAll(status: _currentFilter);
+    final tasks = await DatabaseService.instance.readAll(
+      status: _currentFilter,
+    );
     setState(() => _tasks = tasks);
   }
 
@@ -49,123 +63,129 @@ class _TaskListScreenState extends State<TaskListScreen> {
     _loadTasks();
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    
-    appBar: AppBar(
-      title: const Text('Minhas Tarefas'),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+      title: Text(_getAppBarTitle()),
     ),
-    body: Column(
-      children: [
-        // INÍCIO - Bloco do formulário de adição
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: 'Nova tarefa...',
-                  border: OutlineInputBorder(),
+      body: Column(
+        children: [
+          // INÍCIO - Bloco do formulário de adição
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    hintText: 'Nova tarefa...',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedPriority,
-                      decoration: const InputDecoration(
-                        labelText: 'Prioridade',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['low', 'medium', 'high']
-                          .map((priority) => DropdownMenuItem(
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedPriority,
+                        decoration: const InputDecoration(
+                          labelText: 'Prioridade',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: ['low', 'medium', 'high']
+                            .map(
+                              (priority) => DropdownMenuItem(
                                 value: priority,
-                                child: Text(priority.replaceFirst(
-                                    priority[0], priority[0].toUpperCase())),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedPriority = value;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: ElevatedButton(
-                      onPressed: _addTask,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Text(
+                                  priority.replaceFirst(
+                                    priority[0],
+                                    priority[0].toUpperCase(),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedPriority = value;
+                            });
+                          }
+                        },
                       ),
-                      child: const Text('Adicionar'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 1,
+                      child: ElevatedButton(
+                        onPressed: _addTask,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text('Adicionar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // FIM - Bloco do formulário de adição
+
+          // INÍCIO - Bloco dos botões de filtro
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SegmentedButton<String>(
+              segments: const <ButtonSegment<String>>[
+                ButtonSegment(value: 'all', label: Text('Todas')),
+                ButtonSegment(value: 'pending', label: Text('Pendentes')),
+                ButtonSegment(value: 'completed', label: Text('Completas')),
+              ],
+              selected: <String>{_currentFilter},
+              onSelectionChanged: (Set<String> newSelection) {
+                setState(() {
+                  _currentFilter = newSelection.first;
+                  _loadTasks(); // Recarrega as tarefas com o novo filtro
+                });
+              },
+            ),
+          ),
+          // FIM - Bloco dos botões de filtro
+
+          // INÍCIO - Bloco da lista de tarefas
+          Expanded(
+            child: ListView.builder(
+              itemCount: _tasks.length,
+              itemBuilder: (context, index) {
+                final task = _tasks[index];
+                return ListTile(
+                  leading: Checkbox(
+                    value: task.completed,
+                    onChanged: (_) => _toggleTask(task),
+                  ),
+                  title: Text(
+                    task.title,
+                    style: TextStyle(
+                      decoration: task.completed
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        // FIM - Bloco do formulário de adição
-
-        // INÍCIO - Bloco dos botões de filtro 
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: SegmentedButton<String>(
-            segments: const <ButtonSegment<String>>[
-              ButtonSegment(value: 'all', label: Text('Todas')),
-              ButtonSegment(value: 'pending', label: Text('Pendentes')),
-              ButtonSegment(value: 'completed', label: Text('Completas')),
-            ],
-            selected: <String>{_currentFilter},
-            onSelectionChanged: (Set<String> newSelection) {
-              setState(() {
-                _currentFilter = newSelection.first;
-                _loadTasks(); // Recarrega as tarefas com o novo filtro
-              });
-            },
-          ),
-        ),
-        // FIM - Bloco dos botões de filtro
-
-        // INÍCIO - Bloco da lista de tarefas 
-        Expanded(
-          child: ListView.builder(
-            itemCount: _tasks.length,
-            itemBuilder: (context, index) {
-              final task = _tasks[index];
-              return ListTile(
-                leading: Checkbox(
-                  value: task.completed,
-                  onChanged: (_) => _toggleTask(task),
-                ),
-                title: Text(
-                  task.title,
-                  style: TextStyle(
-                    decoration:
-                        task.completed ? TextDecoration.lineThrough : null,
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _deleteTask(task.id),
                   ),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => _deleteTask(task.id),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-        // FIM - Bloco da lista de tarefas
-      ],
-    ),
-  );
-}
+          // FIM - Bloco da lista de tarefas
+        ],
+      ),
+    );
+  }
 }

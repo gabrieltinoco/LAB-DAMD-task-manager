@@ -13,6 +13,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   List<Task> _tasks = [];
   final _titleController = TextEditingController();
   String _selectedPriority = 'medium';
+  String _currentFilter = 'all';
 
   @override
   void initState() {
@@ -21,7 +22,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   Future<void> _loadTasks() async {
-    final tasks = await DatabaseService.instance.readAll();
+    final tasks = await DatabaseService.instance.readAll(status: _currentFilter);
     setState(() => _tasks = tasks);
   }
 
@@ -51,10 +52,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(title: const Text('Minhas Tarefas')),
+    
+    appBar: AppBar(
+      title: const Text('Minhas Tarefas'),
+    ),
     body: Column(
       children: [
-        Padding( 
+        // INÍCIO - Bloco do formulário de adição
+        Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,7 +115,29 @@ Widget build(BuildContext context) {
             ],
           ),
         ),
+        // FIM - Bloco do formulário de adição
 
+        // INÍCIO - Bloco dos botões de filtro 
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SegmentedButton<String>(
+            segments: const <ButtonSegment<String>>[
+              ButtonSegment(value: 'all', label: Text('Todas')),
+              ButtonSegment(value: 'pending', label: Text('Pendentes')),
+              ButtonSegment(value: 'completed', label: Text('Completas')),
+            ],
+            selected: <String>{_currentFilter},
+            onSelectionChanged: (Set<String> newSelection) {
+              setState(() {
+                _currentFilter = newSelection.first;
+                _loadTasks(); // Recarrega as tarefas com o novo filtro
+              });
+            },
+          ),
+        ),
+        // FIM - Bloco dos botões de filtro
+
+        // INÍCIO - Bloco da lista de tarefas 
         Expanded(
           child: ListView.builder(
             itemCount: _tasks.length,
@@ -136,6 +163,7 @@ Widget build(BuildContext context) {
             },
           ),
         ),
+        // FIM - Bloco da lista de tarefas
       ],
     ),
   );

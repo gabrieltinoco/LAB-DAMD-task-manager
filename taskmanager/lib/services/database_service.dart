@@ -18,11 +18,7 @@ class DatabaseService {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
+    return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -46,11 +42,7 @@ class DatabaseService {
 
   Future<Task?> read(String id) async {
     final db = await database;
-    final maps = await db.query(
-      'tasks',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final maps = await db.query('tasks', where: 'id = ?', whereArgs: [id]);
 
     if (maps.isNotEmpty) {
       return Task.fromMap(maps.first);
@@ -58,10 +50,27 @@ class DatabaseService {
     return null;
   }
 
-  Future<List<Task>> readAll() async {
+  Future<List<Task>> readAll({String status = 'all'}) async {
     final db = await database;
+
+    String? where;
+    List<dynamic>? whereArgs;
+
+    if (status == 'completed') {
+      where = 'completed = ?';
+      whereArgs = [1];
+    } else if (status == 'pending') {
+      where = 'completed = ?';
+      whereArgs = [0];
+    }
+
     const orderBy = 'createdAt DESC';
-    final result = await db.query('tasks', orderBy: orderBy);
+    final result = await db.query(
+      'tasks',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: orderBy,
+    );
     return result.map((map) => Task.fromMap(map)).toList();
   }
 
@@ -77,10 +86,6 @@ class DatabaseService {
 
   Future<int> delete(String id) async {
     final db = await database;
-    return await db.delete(
-      'tasks',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
   }
 }

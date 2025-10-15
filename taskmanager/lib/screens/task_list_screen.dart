@@ -33,24 +33,39 @@ class _TaskListScreenState extends State<TaskListScreen> {
     }
   }
 
-  Future<void> _loadTasks() async {
-    final tasks = await DatabaseService.instance.readAll(
-      status: _currentFilter,
-    );
-    setState(() => _tasks = tasks);
+Future<void> _loadTasks() async {
+  final tasks = await DatabaseService.instance.readAll(status: _currentFilter);
+  print('Carregadas ${tasks.length} tarefas com o filtro "$_currentFilter".'); // 🕵️‍♂️ Detetive 4
+  setState(() => _tasks = tasks);
+}
+
+Future<void> _addTask() async {
+  print('--- Botão Adicionar Pressionado! ---');
+
+  if (_titleController.text.trim().isEmpty) {
+    print('O título está vazio. Abortando.');
+    return;
   }
 
-  Future<void> _addTask() async {
-    if (_titleController.text.trim().isEmpty) return;
+  final task = Task(
+    title: _titleController.text.trim(),
+    priority: _selectedPriority,
+  );
 
-    final task = Task(
-      title: _titleController.text.trim(),
-      priority: _selectedPriority,
-    );
+  print('Criando tarefa: ${task.title}');
+
+  // 👇 ADICIONE O TRY...CATCH AQUI 👇
+  try {
     await DatabaseService.instance.create(task);
     _titleController.clear();
+    print('Tarefa criada! Recarregando a lista...');
     _loadTasks();
+  } catch (e) {
+    print('!!!!!!!!!! ERRO AO CRIAR TAREFA !!!!!!!!!!');
+    print(e); // Isso vai imprimir o erro exato do banco de dados
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
   }
+}
 
   Future<void> _toggleTask(Task task) async {
     final updated = task.copyWith(completed: !task.completed);
@@ -66,9 +81,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-      title: Text(_getAppBarTitle()),
-    ),
+      appBar: AppBar(title: Text(_getAppBarTitle())),
       body: Column(
         children: [
           // INÍCIO - Bloco do formulário de adição
